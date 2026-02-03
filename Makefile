@@ -27,7 +27,7 @@ crcpsh.co: modelt-pushpop.asm modelt-driver.asm crc16-pushpop.asm
 	cp -p crcpsh.co ../VirtualT/crcpsh.co
 
 clean:
-	rm modelt-*.lst modelt-*.bin crc16*.bin crc*.co *~ 2>/dev/null || true
+	rm modelt-*.lst modelt-*.bin crc16*.bin crc16-*.lst crc*.co *~ 2>/dev/null || true
 
 
 
