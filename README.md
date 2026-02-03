@@ -38,9 +38,9 @@ in HL and call `CRC16_CONTINUE`, which skips initializing HL to 0.
 
 ## Specifics
 
-This implements the XMODEM version of CRC-16. In particular, it uses
-the polynomial 0x1021 (0001 0000 0010 0001) with an initial value of
-zero. 
+There are actually many different flavors of CRC-16. This implements
+the XMODEM version of CRC-16. In particular, it uses the polynomial
+0x1021 (0001 0000 0010 0001) with an initial value of zero.
 
 ## Model T driver
 
@@ -84,7 +84,8 @@ reported so far. If you find one not listed, please open an issue.
 Modified ROMs, for example with Y2K patches, will have different
 checksums than the original. The Virtual T emulator can also patch the
 ROMs to show the Virtual T version on the Menu. You may also see a ROM
-with both patches.
+with both patches. A directory of sample ROMs downloaded from
+tandy.wiki exists in [ROMs](ROMs). 
 
 |            Machine Name | Y2K patched | Virtual T | Y2K + Virtual T | ROM size |
 |------------------------:|:-----------:|:---------:|:---------------:|---------:|
