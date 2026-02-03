@@ -1,12 +1,12 @@
 # CRC-16 for Intel 8080
 
 This assembly routine calculates the 16-bit Cyclic Redundancy Check on
-an Intel 8080 processor. It will also run on the 8085 or Z80. 
+an Intel 8080 processor. It will also run on the 8085 or Z80.
 
 The main purpose of this was to make a simple routine that could
 quickly check the ROM on any of the Model T Computers (The Kyotronic
 Sisters): Kyocera Kyotronic KC-85, TRS-80 Model 100, Tandy 102, Tandy
-200, Olivetti M10, NEC PC-8201, NEC PC-8201/A, NEC PC-8300. 
+200, Olivetti M10, NEC PC-8201, NEC PC-8201/A, NEC PC-8300.
 
 ## Faster, Better, Stronger (pick one)
 
@@ -31,7 +31,7 @@ There are three versions available:
 
 Call `CRC16` with the DE register pointing to the address to start
 checksumming and the BC register hoding the length of that buffer.
-The result will be in HL. 
+The result will be in HL.
 
 To checksum multiple parts of a file, simply leave the previous result
 in HL and call `CRC16_CONTINUE`, which skips initializing HL to 0.
@@ -108,7 +108,7 @@ C code came from Lammert Bies's excellent web page:
 https://www.lammertbies.nl/comm/info/crc-calculation .
 
 
-<details><summary>Output from ./crc16 ROMs/*</summary><ul>
+<details><summary>CRC16 checksums for the various ROMs</summary><ul>
 
 ```shell
 crc16-8080$ ./crc16 ROMs/*
@@ -137,3 +137,48 @@ F6C1    ROMs/TRS-80_Model_100.y2k.bin
 ```
 
 </ul></details>
+
+## Determining hardware architecture via PEEK of ROM
+
+Distinguishing the different Kyocera Kyotronic Sisters by ROM values
+requires at least two PEEKs. The following peeks have (so far) worked
+properly regardless of ROM patches, such as Y2K or Virtual T.
+
+<details><summary>Output from ./crc16 ROMs/*</summary><ul>
+
+| PEEK(1) | (21358) | ROM FILE                             |
+|--------:|--------:|--------------------------------------|
+|      35 |      35 | M10_System_ROM_EU.orig.bin           |
+|      35 |      35 | M10_System_ROM_EU.y2k.bin            |
+|      51 |      83 | TRS-80_Model_100.orig.bin            |
+|      51 |      83 | TRS-80_Model_100.y2k.bin             |
+|      72 |     209 | NEC_PC-8300_Beckman-E3.2.bin         |
+|     125 |     205 | M10_System_ROM_NorthAmerica.orig.bin |
+|     125 |     205 | M10_System_ROM_NorthAmerica.y2k.bin  |
+|     144 |     254 | TANDY_600_BASIC.bin                  |
+|     148 |     101 | NEC_PC-8201A.orig.bin                |
+|     148 |     101 | NEC_PC-8201A.y2k.bin                 |
+|     148 |     235 | NEC_PC-8300.orig.bin                 |
+|     148 |     235 | NEC_PC-8300.y2k.bin                  |
+|     167 |      83 | TANDY_Model_102.us.orig.bin          |
+|     167 |      83 | TANDY_Model_102.us.y2k.bin           |
+|     167 |      96 | TANDY_Model_102.uk.orig.bin          |
+|     167 |      96 | TANDY_Model_102.uk.y2k.bin           |
+|     167 |     123 | Televerket-Modell100.orig.bin        |
+|     171 |       9 | TANDY_Model_200.M15.orig.bin         |
+|     171 |       9 | TANDY_Model_200.M15.y2k.bin          |
+|     225 |     194 | KC-85.orig.bin                       |
+|     225 |     194 | KC-85.y2k.bin                        |
+
+</ul></details>
+
+
+|  Model | PEEK(1) | PEEK(21358) |
+|-------:|--------:|------------:|
+|   kc85 |     225 |         167 |
+|    m10 |      35 |          56 |
+|   m100 |      51 |         230 |
+|   m102 |     167 |         230 |
+|   t200 |     171 |          83 |
+| pc8201 |     148 |          66 |
+| pc8300 |     148 |          64 |
