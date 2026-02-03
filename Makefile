@@ -1,4 +1,5 @@
-all:  crc16-bytewise.bin crc16-bitwise.bin crc16-pushpop.bin crc16.co crcbit.co crcpsh.co crc16 
+all:  crc16-bytewise.bin crc16-bitwise.bin crc16-pushpop.bin \
+	CRC16.CO CRCBIT.CO CRCPSH.CO crc16 
 
 
 # These are just the CRC-16 routine assembled, but not part of a usable program.
@@ -14,15 +15,15 @@ crc16-pushpop.bin: crc16-pushpop.asm
 
 # These are the executables for the Kyotronic Sisters (Model T computers)
 
-crc16.co: modelt-bytewise.asm modelt-driver.asm crc16-bytewise.asm
+CRC16.CO: modelt-bytewise.asm modelt-driver.asm crc16-bytewise.asm
 	asmx -e -w -b60000 modelt-bytewise.asm && mv modelt-bytewise.asm.bin CRC16.CO
 	cp -p CRC16.CO ../VirtualT/ || true
 
-crcbit.co: modelt-bitwise.asm modelt-driver.asm crc16-bitwise.asm
+CRCBIT.CO: modelt-bitwise.asm modelt-driver.asm crc16-bitwise.asm
 	asmx -e -w -b60000 modelt-bitwise.asm && mv modelt-bitwise.asm.bin CRCBIT.CO
 	cp -p CRCBIT.CO ../VirtualT/ || true
 
-crcpsh.co: modelt-pushpop.asm modelt-driver.asm crc16-pushpop.asm
+CRCPSH.CO: modelt-pushpop.asm modelt-driver.asm crc16-pushpop.asm
 	asmx -e -w -b60000 modelt-pushpop.asm && mv modelt-pushpop.asm.bin CRCPSH.CO
 	cp -p CRCPSH.CO ../VirtualT/ || true
 
