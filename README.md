@@ -102,8 +102,8 @@ table.
 The selection of CRC parameters is a black art, which is why using a
 well known flavor was important. XMODEM's most significant choice is
 that it uses the "polynomial" 0x1021. What does it mean for a number
-to be a polynomial? Including implicit $1$ to make it a 17-bit number,
-0x1021 can be construed as a polynomial like so,
+to be a polynomial? Including the implicit $1$ to make it a 17-bit
+number, 0x1021 can be construed as a polynomial like so,
 
 $$ 
 \begin{align*}
