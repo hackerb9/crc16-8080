@@ -92,7 +92,6 @@ ASCII hex using `xxd -p -c0`.
 
 [online]: https://crccalc.com/?crc=&method=CRC-16/XMODEM&datatype=hex&outtype=hex "Calculate CRC-16/XMODEM in your web browser"
 
-<details><summary>Delve deeper</summary><ul>
 
 The details of how cyclic redundancy checksums work is deep and
 labyrinthine. If you want to understand the algorithm as implemented
@@ -112,6 +111,8 @@ $$
               &= x^{16} + x^{12} + x^5 + x^0
 \end{align*}
 $$
+
+<details><summary>Delve deeper</summary><ul>
 
 Knowing that the number 0x1021 is mathematically a polynomial is
 enlightening as it defines the rules for "CRC arithmetic": Polynomial
