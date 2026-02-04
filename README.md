@@ -1,184 +1,156 @@
 # CRC-16 for Intel 8080
 
-This assembly routine calculates the 16-bit Cyclic Redundancy Check on
-an Intel 8080 processor. It will also run on the 8085 or Z80.
-
-The main purpose of this was to make a simple routine that could
-quickly check the ROM on any of the Model T Computers (The Kyotronic
-Sisters): Kyocera Kyotronic KC-85, TRS-80 Model 100, Tandy 102, Tandy
-200, Olivetti M10, NEC PC-8201, NEC PC-8201/A, NEC PC-8300.
+This assembly routine calculates the 16-bit Cyclic Redundancy Check
+(XMODEM variant) on an Intel 8080 processor. It also runs on the Intel
+8085 and Zilog Z80.
 
 ## Faster, Better, Stronger (pick one)
 
 There are three versions available:
 
-| Version                      | Compiled Size |     Speed | Features   |
-|------------------------------|--------------:|----------:|------------|
-| [CRC-bytewise.asm][bytewise] |     548 bytes | 4 seconds | Fastest    |
-| [CRC-bitwise.asm][bitwise]   |     110 bytes | 6 seconds | Reasonable |
-| [CRC-pushpop.asm][pushpop]   |      34 bytes | 9 seconds | Smallest   |
+| Version                      | Assembled Size |     Speed | Features   |
+|------------------------------|---------------:|----------:|------------|
+| [CRC-bytewise.asm][bytewise] |      548 bytes | 4 seconds | Fastest    |
+| [CRC-bitwise.asm][bitwise]   |      110 bytes | 6 seconds | Reasonable |
+| [CRC-pushpop.asm][pushpop]   |       34 bytes | 9 seconds | Smallest   |
 
-* "Compiled size" is for the CRC-16 routine and does not count the
-  Model T example driver (see below).
-* "Speed" is time to calculate the CRC-16 of the 72K ROM on
-  a Tandy 200 (8085 @2.46 MHz).
+* "Speed" is time to calculate the CRC-16 of the 72K ROM on a Tandy
+  200 (8085 @2.4576 MHz).
 
 [bytewise]: crc16-bytewise.asm
 [bitwise]: crc16-bitwise.asm
 [pushpop]: crc16-pushpop.asm
 
+## Compiling
+
+If you have the `asmx` assembler installed, simply run `make` to
+compile the `crc16` executable and assembly code fragments.
+
 ## Usage
 
-Call `CRC16` with the DE register pointing to the address to start
-checksumming and the BC register hoding the length of that buffer.
-The result will be in HL.
+In your own code, call `CRC16` with the DE register pointing to a
+buffer and the BC register set to the buffer's size. The result will
+be in HL.
 
-To checksum multiple parts of a file, simply leave the previous result
-in HL and call `CRC16_CONTINUE`, which skips initializing HL to 0.
+``` assembly
+	LXI D, 0     ; DE: Address of buffer to checksum
+	LXI B, 8000H ; BC: Length of buffer (8000H for 32K)
 
-## Specifics
+	;; Calculate checksum of BC bytes at addr DE and put result in HL.
+	CALL CRC16
+```
 
-There are actually many different flavors of CRC-16. This implements
-the XMODEM version of CRC-16. In particular, it uses the polynomial
-0x1021 (0001 0000 0010 0001) with an initial value of zero.
+## Advanced Usage
 
-## Model T driver
+To checksum multiple parts as a single file, simply leave the previous
+stage's result in HL and call `CRC16_CONTINUE`.
 
-Hackerb9 has created an example driver program
-[modelt-driver.asm][modelt-driver.asm] that uses the CRC16 routine to
-checksum the ROM on any of the Kyotronic Sisters. The following
-wrapper programs include that driver file and the appropriate CRC16
-backend. Download the .CO file if you simply want to run a check on
-your Model T to see if you have a standard ROM installed.
+``` assembly
+	LXI D, 0     ; DE: ROM M15 from 0000 to 7FFF
+	LXI B, 8000H ; BC: 32K
+	CALL CRC16
 
-Note that all three version have the same output. The only difference
-is in the file size and speed of execution.
+	LXI D, 8000H ; DE: ROM M13 from 8000 to A000
+	LXI B, 2000H ; BC: 8K
+	CALL CRC16_CONTINUE
 
-| Source                           | .CO executable         | Compiled Size | Features   |
-|----------------------------------|------------------------|--------------:|------------|
-| [modelt-bytewise.asm][tbytewise] | [CRC16.CO](CRC16.CO)   |     807 bytes | Fastest    |
-| [modelt-bitwise.asm][tbitwise]   | [CRCBIT.CO](CRCBIT.CO) |     369 bytes | Reasonable |
-| [modelt-pushpop.asm][tpushpop]   | [CRCPSH.CO](CRCPSH.CO) |     293 bytes | Smallest   |
+	;; Bank selection: Replace M15 with M14
+	DI
+	IN 0D8h
+	ANI 00001100b		; keep the ram bits, zero out the rom bits
+	ORI 00000001b		; enable multiplan rom
+	OUT 0D8H
+	
+	LXI D, 0     ; DE: ROM M14 from 0000 to 7FFF
+	LXI B, 8000H ; BC: 32K
+	CALL CRC16_CONTINUE
 
-## Table of ROM checksums
+	;; Switch back to normal BASIC ROM 
+	IN  0D8h
+	ANI 00001100b		; keep the ram bits, zero out the rom bits
+	OUT 0D8H	
+	EI
+```
 
-Here are the CRC-16 values for all of the original Model T ROMs which
-have been reported so far. If you find one not listed, please open an
-issue.
+The above excerpt is from a [related project][crc16-modelt] that uses
+the CRC16-8080 routine to checksum the ROM on the TRS-80 Model 100 and
+kindred devices.
 
-| Machine Name                   | ROM size | CRC-16 |
-|:-------------------------------|---------:|:------:|
-| Kyocera Kyotronic KC-85        |      32K | F08D   |
-| TRS-80 Model 100               |      32K | 2A64   |
-| Tandy 200                      |      72K |        |
-| Tandy 102 (US)                 |      32K | 1C6F   |
-| Tandy 102 (UK)                 |      32K | 5CF0   |
-| NEC PC-8201A                   |      32K | A48D   |
-| NEC PC-8300                    |     128K | 9FF5   |
-| Olivetti M10 (Europe)          |      32K | 5DD2   |
-| Olivetti M10 (North America)   |      32K | 5D9F   |
-| Televerket Modell 100 (Norway) |      32K | 34F5   |
+[crc16-modelt]: https://github.com/hackerb9/crc16-modelt "Calculate the ROM checksum on the TRS-80 Model 100 family of computers" 
 
+## Algorithm Specifics
 
-### ROM Variants
+There are actually many different flavors of CRC-16 which all produce
+different results based on certain parameters: the polynomial, initial
+conditions, bit reflection, etc.. This code implements the XMODEM
+variant of CRC-16 because its parameters and implementation were well
+known at the time when Intel 8080 compatible processors were
+prevalent. XMODEM checksums can be easily tested on other machines —
+see below for a C program. There are also [online web
+implementations][online], but you need to first convert the file to
+ASCII hex using `xxd -p -c0`.
 
-Modified ROMs, for example with Y2K patches, will have different
-checksums than the original. The Virtual T emulator can also patch the
-ROMs to show the Virtual T version on the Menu. You may also see a ROM
-with both patches. See also the directory of sample ROMs downloaded
-from tandy.wiki in [ROMs](ROMs).
+[online]: https://crccalc.com/?crc=&method=CRC-16/XMODEM&datatype=hex&outtype=hex "Calculate CRC-16/XMODEM in your web browser"
 
-|            Machine Name | ROM size | Y2K patched | Virtual T | Y2K + Virtual T |
-|------------------------:|---------:|:-----------:|:---------:|:---------------:|
-| Kyocera Kyotronic KC-85 |      32K | 64A8        | E71C      |                 |
-|        TRS-80 Model 100 |      32K | F6C1        |           | 554D            |
-|          Tandy 102 (US) |      32K | DE5B        |           | 7DD7            |
-|          Tandy 102 (UK) |      32K | 9EC4        |           | 7DD7            |
-|               Tandy 200 |      72K | 9534        |           | 0665            |
-|            NEC PC-8201A |      32K | 8CA0        |           |                 |
-|             NEC PC-8300 |     128K | E3A9        |           |                 |
-|   Olivetti M10 (Europe) |      32K | 1B13        |           | B753            |
-|       Olivetti M10 (US) |      32K | 5E44        |           |                 |
+<details><summary>Delve deeper</summary><ul>
+
+The details of how cyclic redundancy checksums work is deep and
+labyrinthine. If you want to understand the algorithm as implemented
+here, I suggest looking first at [crc16-bitwise.asm][bitwise] as the
+[bytewise][bytewise] algorithm is optimized using a precomputed lookup
+table.
+
+The selection of CRC parameters is a black art, which is why using a
+well known flavor was important. XMODEM's most significant choice is
+that it uses the "polynomial" 0x1021. What does it mean for a number
+to be a polynomial? Including implicit $1$ to make it a 17-bit number,
+0x1021 can be construed as a polynomial like so,
+
+$$ 
+\begin{align*}
+   11021_{16} &= 1\ 0001\ 0000\ 0010\ 0001_2\\
+              &= x^{16} + x^{12} + x^5 + x^0
+\end{align*}
+$$
+
+Knowing that the number 0x1021 is mathematically a polynomial is
+enlightening as it defines the rules for "CRC arithmetic": Polynomial
+arithmetic mod 2. One neat feature of that arithmetic is that Addition
+and Subtraction are equal to each other and both are simply Exclusive
+Or:
+
+| a | b | a+b | a-b | a⊕b |
+|---|---|:---:|:---:|:---:|
+| 0 | 0 | 0   | 0   | 0   |
+| 0 | 1 | 1   | 1   | 1   |
+| 1 | 0 | 1   | 1   | 1   |
+| 1 | 1 | 0   | 0   | 0   |
+
+Polynomial arithmetic mod 2 is isomorphic to binary arithmetic with no
+carry, which is much simpler. Therefore, CRC implementations treat the
+polynomial as a binary number despite calling it "the polynomial". 
+
+In particular, the polynomial is used as the divisor for the binary
+message. The remainder of that division is the checksum. Due to the
+peculiar rules of CRC arithmetic, long division can be expressed as
+simply a series of XOR (⊕) and shift operations, which happen to be
+easily implemented on early CPUs, such as the 8080.
+
+For more information, I found most helpful Ross Williams' "Painless
+Guide", aka ["Everything you wanted to know about CRC algorithms, but
+were afraid to ask for fear that errors in your understanding might be
+detected"](adjunct/crc_v3.txt).
+
+Also of help are Lammert Bies's excellent web page:
+[https://www.lammertbies.nl/comm/info/crc-calculation](https://www.lammertbies.nl/comm/info/crc-calculation)
+and the RF-Wireless World's CRC16 calculator:
+[https://www.rfwireless-world.com/calculators/crc16-calculator-and-formula](https://www.rfwireless-world.com/calculators/crc16-calculator-and-formula).
+
+</ul></details>
 
 ## C double-check
 
 One can run an [included C program](adjunct/crc16.c) to double-check
 that the assembly language is getting the right answer. The underlying
-C code came from Lammert Bies's excellent web page:
-https://www.lammertbies.nl/comm/info/crc-calculation .
+C code came from [crcany](https://github.com/madler/crcany).
 
-
-<details><summary>CRC16 checksums for the various ROMs</summary><ul>
-
-```shell
-crc16-8080$ ./crc16 ROMs/*
-F08D    ROMs/KC-85.orig.bin
-64A8    ROMs/KC-85.y2k.bin
-5DD2    ROMs/M10_System_ROM_EU.orig.bin
-1B13    ROMs/M10_System_ROM_EU.y2k.bin
-5D9F    ROMs/M10_System_ROM_NorthAmerica.orig.bin
-5E44    ROMs/M10_System_ROM_NorthAmerica.y2k.bin
-A48D    ROMs/NEC_PC-8201A.orig.bin
-8CA0    ROMs/NEC_PC-8201A.y2k.bin
-4793    ROMs/NEC_PC-8300_Beckman-E3.2.bin
-9FF5    ROMs/NEC_PC-8300.orig.bin
-E3A9    ROMs/NEC_PC-8300.y2k.bin
-A2B3    ROMs/TANDY_600_BASIC.bin
-5CF0    ROMs/TANDY_Model_102.uk.orig.bin
-9EC4    ROMs/TANDY_Model_102.uk.y2k.bin
-1C6F    ROMs/TANDY_Model_102.us.orig.bin
-DE5B    ROMs/TANDY_Model_102.us.y2k.bin
-3D1A    ROMs/TANDY_Model_200.M13.orig.bin
-25C3    ROMs/TANDY_Model_200.M15.orig.bin
-67AB    ROMs/TANDY_Model_200.M15.y2k.bin
-2A64    ROMs/Televerket-Modell100.orig.bin
-34F5    ROMs/TRS-80_Model_100.orig.bin
-F6C1    ROMs/TRS-80_Model_100.y2k.bin
-```
-
-</ul></details>
-
-## Determining hardware architecture via PEEK of ROM
-
-Distinguishing the different Kyocera Kyotronic Sisters by ROM values
-requires at least two PEEKs. The following peeks have (so far) worked
-properly regardless of ROM patches, such as Y2K or Virtual T.
-
-<details><summary>Output from ./crc16 ROMs/*</summary><ul>
-
-| PEEK(1) | (21358) | ROM FILE                             |
-|--------:|--------:|--------------------------------------|
-|      35 |      35 | M10_System_ROM_EU.orig.bin           |
-|      35 |      35 | M10_System_ROM_EU.y2k.bin            |
-|      51 |      83 | TRS-80_Model_100.orig.bin            |
-|      51 |      83 | TRS-80_Model_100.y2k.bin             |
-|      72 |     209 | NEC_PC-8300_Beckman-E3.2.bin         |
-|     125 |     205 | M10_System_ROM_NorthAmerica.orig.bin |
-|     125 |     205 | M10_System_ROM_NorthAmerica.y2k.bin  |
-|     144 |     254 | TANDY_600_BASIC.bin                  |
-|     148 |     101 | NEC_PC-8201A.orig.bin                |
-|     148 |     101 | NEC_PC-8201A.y2k.bin                 |
-|     148 |     235 | NEC_PC-8300.orig.bin                 |
-|     148 |     235 | NEC_PC-8300.y2k.bin                  |
-|     167 |      83 | TANDY_Model_102.us.orig.bin          |
-|     167 |      83 | TANDY_Model_102.us.y2k.bin           |
-|     167 |      96 | TANDY_Model_102.uk.orig.bin          |
-|     167 |      96 | TANDY_Model_102.uk.y2k.bin           |
-|     167 |     123 | Televerket-Modell100.orig.bin        |
-|     171 |       9 | TANDY_Model_200.M15.orig.bin         |
-|     171 |       9 | TANDY_Model_200.M15.y2k.bin          |
-|     225 |     194 | KC-85.orig.bin                       |
-|     225 |     194 | KC-85.y2k.bin                        |
-
-</ul></details>
-
-
-|  Model | PEEK(1) | PEEK(21358) |
-|-------:|--------:|------------:|
-|   kc85 |     225 |         167 |
-|    m10 |      35 |          56 |
-|   m100 |      51 |         230 |
-|   m102 |     167 |         230 |
-|   t200 |     171 |          83 |
-| pc8201 |     148 |          66 |
-| pc8300 |     148 |          64 |
