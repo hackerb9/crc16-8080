@@ -52,7 +52,7 @@ CRC16_MAINLOOP:
 				; A=((crc>>8)^data[i])&0x0f
 
 	;; crc == HL. Do we have to shift it by four or can we do both
-	;; nybbles at once? 
+	;; nybbles at once? No, because order of operations matters.
 	
 	XRA H
 
