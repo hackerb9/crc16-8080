@@ -14,39 +14,24 @@ CRC16_CONTINUE:
 
 CRC16_MAINLOOP:
 
-;; ???? changing from bytes to two nybbles, like so? s/8/4/g?
-;        crc = (crc << 8) 
-;		^ (table_nybble[((crc >> 4) ^ data[i]) & 0x0f] << 4)
-;	        ^ table_nybble[((crc >> 4) ^ data[j]) & 0x0f];
-
-
-;;; Just guessing:
-;;; crc is HL after two nybbles, i and j (A = ij)
-;;; H:=L
+;;; A=data   HL=CRC
 ;;; 
-;;; temp = (H^A) & 0xFF
-;;; ti=temp>>4
-;;; tj=temp&0x0F
-;;; 
-;;; L:= table_nybble[ti]<<4 ^ table_nybble[tj]
-;;;
-
+;;; index = ((CRC ^ A) & 0xF000)
+;;; CRC = ((CRC<<4) & 0x0FFF) ^ table_nybble[index]
+;;; A=A>>4
+;;; index = ((CRC ^ A) & 0x0F)
+;;; CRC = ((CRC<<4) & 0xFFF0) ^ table_nybble[index]
 
 ;;; Maybe something like this?
 
 ;;; A = A^H
+;;; A = A&0xF0
 ;;; x = A
-;;; H = L
-;;; A = A>>4
-;;; A = table_nybble[A]
+;;; A = H
 ;;; A = A<<4
-;;; L = A
+	0x0F
+;;; x = A
 
-;;; A = x
-;;; A = A & 0x0F
-;;; A = table_nybble[A]
-;;; A = A^L
-;;; L = A
 				
 	LDAX D			;Get two nybbles from memory
 				; A=((crc>>8)^data[i])&0x0f
