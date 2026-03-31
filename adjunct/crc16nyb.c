@@ -1,6 +1,6 @@
 #include <err.h>		/* for err, errx */
-#include <stdio.h>		/* for printf */
-#include <stdint.h>		/* for uint8_t, etc */
+#include <stdio.h>		/* for fopen, fread, feof, perror, printf */
+#include <stdint.h>		/* for uint8_t, uint16_t */
 
 int debug = 0;
 
@@ -57,9 +57,6 @@ int main(int argc, char *argv[]) {
 }
 
 
-
-
-
 /**********************************************************/
 /* Scaffolding routines used while creating this program. */
 /* Probably should delete.				  */
@@ -72,23 +69,6 @@ uint16_t crc_1nybble(uint16_t crc, uint8_t datum) {
 	crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
     }
     return crc;
-}
-
-void show_nybtable() {
-    for (auto d=0; d<16; d++) {
-	printf("0x%02X → 0x%04X\n", d, crc_1nybble(0, d));
-    }
-}
-
-void test_nybtable() {
-    for (auto d=0; d<256; d++) {
-	uint8_t nh, nl;
-	nh = (d & 0xF0) >> 4;
-	nl = d & 0x0F;
-
-	auto tmpcrc = crc_1nybble(0, nh);
-	printf("0x%02X → 0x%04X\n", d, crc_1nybble(tmpcrc, nl));
-    }
 }
 
 void mknybtable() {
