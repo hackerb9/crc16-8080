@@ -19,7 +19,6 @@ CRC16_MAINLOOP:
 				;Get each byte from memory
 	LDAX D			; A=((crc>>8)^data[i])&0xff
 	XRA H
-	ANI 0xFF
 
 	PUSH B
 
