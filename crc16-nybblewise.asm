@@ -13,15 +13,8 @@ CRC16:
 CRC16_CONTINUE:	
 
 CRC16_MAINLOOP:
-
-;;; Equivalent C-code
-;; nh = (data[i] & 0xF0) >> 4;
-;; crc = (crc << 4) ^ table_nybble[((crc >> 12) ^ nh) & 0x0f];
-;; nl = data[i] & 0x0F;
-;; crc = (crc << 4) ^ table_nybble[((crc >> 12) ^ nl) & 0x0f];
-
-	LDAX 	D		;Get two nybbles from memory
-	PUSH	B
+	PUSH	B		; Save number of bytes to process
+	LDAX 	D		; Get two nybbles from memory
 	XRA 	H		; A=A^H
 	STA	ha
 
@@ -33,7 +26,7 @@ CRC16_MAINLOOP:
 
 	;; We want to set b1 to 2nd and 3rd nybbles of BC.
 	;; At this point we can modify C and A but not B
-	;; The following works and is faster, but takes 1 more bytes.
+	;; The following works and is faster, but takes 1 more byte.
 	MOV	A, C
 	ANI	F0h
 	MOV	C, A
@@ -41,14 +34,6 @@ CRC16_MAINLOOP:
 	ANI	0Fh
 	XRA	C
 	CALL	SWAPNYBBLES
-	;; 
-	;; This is a slower, shorter way to get 2nd and 3rd nybbles of BC.
-	;; MOV	A, C		; b1 = (B<<4) ^ (C>>4)
-	;; CALL	SHIFTRIGHT4
-	;; MOV	C, A
-	;; MOV	A, B
-	;; CALL	SHIFTLEFT4
-	;; XRA	C
 	STA	b1
 
 	MOV	A, B		; index2 = ( ((H^A)&0xF) ^ B>>4);
@@ -85,7 +70,7 @@ CRC16_MAINLOOP:
 LOOKUP:				; input: A, output: BC=table[A]
 	MVI B, 0
 	MOV C, A
-	PUSH H			; xy = table[A]
+	PUSH H			; HL = table[]
 	LXI H, table
 	DAD B			; ADD with DAD to handle carry.
 	DAD B			; Stride of two.
