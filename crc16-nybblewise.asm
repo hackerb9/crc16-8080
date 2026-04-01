@@ -83,27 +83,33 @@ LOOKUP:				; input: A, output: BC=table[A]
 	MOV C, A
 	PUSH H			; xy = table[A]
 	LXI H, table
-	DAD H			; ADD with DAD to handle carry
-	DAD H			; stride of two
-	MOV B, M
-	INX H
+	DAD B			; ADD with DAD to handle carry.
+	DAD B			; Stride of two.
 	MOV C, M
+	INX H
+	MOV B, M
 	POP H
 	RET
 
 SHIFTRIGHT4:
 	ORA A			; clear carry
 	RAR
+	ORA A
 	RAR
+	ORA A
 	RAR
+	ORA A
 	RAR
 	RET	
 
 SHIFTLEFT4:
 	ORA A			; clear carry
 	RAL
+	ORA A
 	RAL
+	ORA A
 	RAL
+	ORA A
 	RAL
 	RET	
 
