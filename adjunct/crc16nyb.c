@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
 	    }
 	    if (ret == 0) continue;
 	    if (debug) printf("Processing %d bytes\n", ret);
-	    crc = crc16xmodem_nybble(crc, buffer, ret);
-//	    crc = crc16xmodem_asm_like(crc, buffer, ret);
+//	    crc = crc16xmodem_nybble(crc, buffer, ret);
+	    crc = crc16xmodem_asm_like(crc, buffer, ret);
 	}
     
 	fclose(fp);
@@ -75,14 +75,16 @@ uint16_t crc16xmodem_asm_like(uint16_t crc, void const *mem, size_t len) {
 	auto A=data[i];
 	auto H=crc>>8;
 	auto L=crc&0xFF;
-	auto ha = H^A;
-	auto index = ha>>4;
-	auto index2 = ( (ha&0xF) ^ table_nybble[index]>>12);
-	auto H2 = L
-	      ^ ( (table_nybble[index]>>4) & 0xFF )
-	      ^ (table_nybble[index2]>>8);
-	auto L2 = ( ( (table_nybble[index]&0xF)<<4)
-		    ^ (table_nybble[index2])) & 0xFF;
+	auto index = (H^A)>>4;
+	auto BC = table_nybble[index];
+	uint8_t B = BC >> 8; uint8_t C = BC & 0xFF;
+	auto b1 = (B<<4) ^ (C>>4);
+	auto c1 = (C<<4) & 0xFF;
+	auto index2 = ( ((H^A)&0xF) ^ B>>4);
+	auto BC2 = table_nybble[index2];
+	auto b2 = BC2 >> 8; auto c2 = BC2 & 0xFF;
+	auto H2 = L ^ b1 ^ b2;
+	auto L2 = c1 ^ c2;
 	crc = ((H2<<8) ^ L2);
 	if (debug) {
 	    printf("  H2=%02X L2=%02X\n",H2, L2);
