@@ -2,83 +2,27 @@
 #include <stdio.h>		/* for fopen, fread, feof, perror, printf */
 #include <stdint.h>		/* for uint8_t, uint16_t */
 
-int debug = 1;
+int debug = 0;
 
 static uint16_t const table_nybble[] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF
 };
 
+uint16_t crc16xmodem_asm_like(uint16_t crc, void const *mem, size_t len);
+
 uint16_t crc16xmodem_nybble(uint16_t crc, void const *mem, size_t len) {
     uint8_t const *data = mem;
     if (data == NULL)
         return 0;
+    if (debug) printf("In nybble routine\n");
     for (size_t i = 0; i < len; i++) {
-	uint8_t nh, nl, H, L;
+	uint8_t nh, nl;
 
 	nh = (data[i] & 0xF0) >> 4;
 	nl = data[i] & 0x0F;
-	auto Ap=nh; auto Am=nl;
-	H=crc>>8; L=crc&0xFF;
-	uint8_t Hp, Hm, Lp, Lm;
-	Hp=(H&0xF0)>>4;
-	Hm=(H&0x0F);
-	Lp=(L&0xF0)>>4;
-	Lm=(L&0x0F);
-	
-	if (debug) {
-	    printf("HL=%X %X %X %X\t", Hp, Hm, Lp, Lm);
-	    printf("Ap=%X, Am=%X\t", Ap, Am);
-	}
-
-	auto crc4=(crc<<4) & 0xFFFF;
-
-	auto index = Hp^Ap;
-
-	auto L1m = (table_nybble[index]&0xF);
-//	auto L1 = ((((Lm<<4)^(table_nybble[index]))&0xF0))
-//	      ^ L1m;
-	auto H1 = ((Hm<<4)^Lp) ^ (table_nybble[index] >>8);
-	auto L1 = (Lm<<4) ^ (table_nybble[index]) & 0xFF;
-	if (debug) {
-	    printf("\n\tH1=%02X L1=%02X\n",H1, L1);
-//	    printf("\tindex = %x^%x = %x\n",crc>>12, nh, index);
-//	    auto t=table_nybble[index];
-//	    printf("\ttable[%x] = %04X\n",index, t);
-//	    printf("\tcrc << 4 = %04X\n",crc4);
-//	    printf("\tcrc4 ^ t = %04X\n", crc4 ^ t);
-	}
-
-	auto H1m = H1 & 0xF;
-	auto H1p = H1 >>4;
-	auto L1p = L1 >>4;
-
         crc = (crc<<4) ^ table_nybble[((crc>>12) ^ nh) & 0x0f];
-	printf("\t0x%04X halfway\n", crc);
-
-
-	auto index2 = (Hm ^Am ^ table_nybble[index]>>12);
-	auto H2 = L
-	      ^ ( (table_nybble[index]>>4) & 0xFF )
-	      ^ (table_nybble[index2]>>8);
-
-	auto L2 = ( (table_nybble[index]&0xF)<<4) ^ (table_nybble[index2]) & 0xFF;
-	printf("  H2=%02X L2=%02X\n",H2, L2);
-
-	if (debug) {
-	    auto crc4=(crc<<4) & 0xFFFF;
-	    auto index = (crc>>12)^nl & 0x0f;
-	    printf("\tindex = %x^%x = %x\n",crc>>12, nl, index);
-	    auto t=table_nybble[index];
-	    printf("\ttable[%x] = %04X\n",index, t);
-	    printf("\tcrc << 4 = %04X\n",crc4);
-	    printf("\tcrc4 ^ t = %04X\n", crc4 ^ t);
-	}
-        crc = (crc<<4) ^ table_nybble[((crc >> 12) ^ nl) & 0x0f];
-	if (debug) {
-	    printf("0x%04X\n", crc);
-	}
-
+        crc = (crc<<4) ^ table_nybble[((crc>>12) ^ nl) & 0x0f];
     }
     return crc;
 }
@@ -106,7 +50,7 @@ int main(int argc, char *argv[]) {
 	    if (ret == 0) continue;
 	    if (debug) printf("Processing %d bytes\n", ret);
 	    crc = crc16xmodem_nybble(crc, buffer, ret);
-	    if (debug>1) printf("%x\t", crc);
+//	    crc = crc16xmodem_asm_like(crc, buffer, ret);
 	}
     
 	fclose(fp);
@@ -114,6 +58,41 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+
+
+
+/********************************************************/
+/* The following routine calculates the CRC16 using     */
+/* operations available on the 8080 chip. This was      */
+/* written to make an assembly-language version easier. */
+/********************************************************/
+uint16_t crc16xmodem_asm_like(uint16_t crc, void const *mem, size_t len) {
+    uint8_t const *data = mem;
+    if (data == NULL)
+        return 0;
+    if (debug) printf("In asm_like routine\n");
+    for (size_t i = 0; i < len; i++) {
+	auto A=data[i];
+	auto H=crc>>8;
+	auto L=crc&0xFF;
+	auto ha = H^A;
+	auto index = ha>>4;
+	auto index2 = ( (ha&0xF) ^ table_nybble[index]>>12);
+	auto H2 = L
+	      ^ ( (table_nybble[index]>>4) & 0xFF )
+	      ^ (table_nybble[index2]>>8);
+	auto L2 = ( ( (table_nybble[index]&0xF)<<4)
+		    ^ (table_nybble[index2])) & 0xFF;
+	crc = ((H2<<8) ^ L2);
+	if (debug) {
+	    printf("  H2=%02X L2=%02X\n",H2, L2);
+	}
+    }
+    return crc;
+}
+
+
+
 
 
 /**********************************************************/
