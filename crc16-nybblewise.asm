@@ -21,50 +21,54 @@ CRC16_MAINLOOP:
 ;; crc = (crc << 4) ^ table_nybble[((crc >> 12) ^ nl) & 0x0f];
 
 	LDAX 	D		;Get two nybbles from memory
-	PUSH	D
 	PUSH	B
 	XRA 	H		; A=A^H
-	LXI	D, ha
-	STAX	D
+	STA	ha
 
 	CALL	SHIFTRIGHT4	; index = (H^A)>>4 (high nybble)
 	CALL	LOOKUP		; BC = table[index]
 	MOV	A, C
 	CALL	SHIFTLEFT4	; c1 = (C<<4)
-	LXI	D, c1
-	STAX	D
+	STA	c1
 
-	MOV	A, C		; b1 = (B<<4) ^ (C>>4)
-	CALL	SHIFTRIGHT4
+	;; We want to set b1 to 2nd and 3rd nybbles of BC.
+	;; At this point we can modify C and A but not B
+	;; The following works and is faster, but takes 1 more bytes.
+	MOV	A, C
+	ANI	F0h
 	MOV	C, A
 	MOV	A, B
-	CALL	SHIFTLEFT4
+	ANI	0Fh
 	XRA	C
-	LXI	D, b1
-	STAX	D
+	CALL	SWAPNYBBLES
+	;; 
+	;; This is a slower, shorter way to get 2nd and 3rd nybbles of BC.
+	;; MOV	A, C		; b1 = (B<<4) ^ (C>>4)
+	;; CALL	SHIFTRIGHT4
+	;; MOV	C, A
+	;; MOV	A, B
+	;; CALL	SHIFTLEFT4
+	;; XRA	C
+	STA	b1
 
 	MOV	A, B		; index2 = ( ((H^A)&0xF) ^ B>>4);
 	CALL	SHIFTRIGHT4
 	MOV	B, A
-	LXI	D, ha
-	LDAX	D
+	LDA	ha
 	ANI	0Fh		; low-nybble
 	XRA	B
 
 	CALL	LOOKUP		; BC = table[index2]
-	LXI	D, b1		; H2=L^b1^b2
-	LDAX	D
+	LDA	b1		; H2 = L ^ b1 ^b2
 	XRA	L
 	XRA	B
 	MOV	H, A
 
-	LXI	D, c1		; L2 = c1 ^ c2;
-	LDAX	D
+	LDA	c1		; L2 = c1 ^ c2;
 	XRA	C
 	MOV	L, A
 
 	POP	B
-	POP 	D
 
 	;;; Get next byte
 	INX D			; DE points to next byte 
@@ -92,19 +96,20 @@ LOOKUP:				; input: A, output: BC=table[A]
 	RET
 
 SHIFTRIGHT4:
-	ANI F0h			; clear bits that'd get put in carry
-	RAR
-	RAR
-	RAR
-	RAR
+	ANI F0h			; clear bits that'd wrap around
+	RRC
+	RRC
+	RRC
+	RRC
 	RET	
 
 SHIFTLEFT4:
 	ANI 0Fh
-	RAL
-	RAL
-	RAL
-	RAL
+SWAPNYBBLES:
+	RLC
+	RLC
+	RLC
+	RLC
 	RET	
 
 
