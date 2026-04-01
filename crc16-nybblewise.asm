@@ -92,24 +92,18 @@ LOOKUP:				; input: A, output: BC=table[A]
 	RET
 
 SHIFTRIGHT4:
-	ORA A			; clear carry
+	ANI F0h			; clear bits that'd get put in carry
 	RAR
-	ORA A
 	RAR
-	ORA A
 	RAR
-	ORA A
 	RAR
 	RET	
 
 SHIFTLEFT4:
-	ORA A			; clear carry
+	ANI 0Fh
 	RAL
-	ORA A
 	RAL
-	ORA A
 	RAL
-	ORA A
 	RAL
 	RET	
 
