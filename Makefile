@@ -1,6 +1,7 @@
 all:  crc16-bytewise.bin crc16-nybblewise.bin crc16-bitwise.bin crc16-pushpop.bin  crc16 
 
 # These are just the CRC-16 routine assembled, but _not_ part of a usable program.
+# Please https://github.com/hackerb9/crc16-modelt/.
 crc16-bytewise.bin: crc16-bytewise.asm 
 	asmx -e -w -C8080 -b0 crc16-bytewise.asm && mv crc16-bytewise.asm.bin crc16-bytewise.bin
 
