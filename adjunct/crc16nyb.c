@@ -2,7 +2,7 @@
 #include <stdio.h>		/* for fopen, fread, feof, perror, printf */
 #include <stdint.h>		/* for uint8_t, uint16_t */
 
-int debug = 0;
+int debug = 1;
 
 static uint16_t const table_nybble[] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 
@@ -14,11 +14,71 @@ uint16_t crc16xmodem_nybble(uint16_t crc, void const *mem, size_t len) {
     if (data == NULL)
         return 0;
     for (size_t i = 0; i < len; i++) {
-	uint8_t nh, nl;
+	uint8_t nh, nl, H, L;
+
 	nh = (data[i] & 0xF0) >> 4;
 	nl = data[i] & 0x0F;
-        crc = (crc << 4) ^ table_nybble[((crc >> 12) ^ nh) & 0x0f];
-        crc = (crc << 4) ^ table_nybble[((crc >> 12) ^ nl) & 0x0f];
+	auto Ap=nh; auto Am=nl;
+	H=crc>>8; L=crc&0xFF;
+	uint8_t Hp, Hm, Lp, Lm;
+	Hp=(H&0xF0)>>4;
+	Hm=(H&0x0F);
+	Lp=(L&0xF0)>>4;
+	Lm=(L&0x0F);
+	
+	if (debug) {
+	    printf("HL=%X %X %X %X\t", Hp, Hm, Lp, Lm);
+	    printf("Ap=%X, Am=%X\t", Ap, Am);
+	}
+
+	auto crc4=(crc<<4) & 0xFFFF;
+
+	auto index = Hp^Ap;
+
+	auto L1m = (table_nybble[index]&0xF);
+//	auto L1 = ((((Lm<<4)^(table_nybble[index]))&0xF0))
+//	      ^ L1m;
+	auto H1 = ((Hm<<4)^Lp) ^ (table_nybble[index] >>8);
+	auto L1 = (Lm<<4) ^ (table_nybble[index]) & 0xFF;
+	if (debug) {
+	    printf("\n\tH1=%02X L1=%02X\n",H1, L1);
+//	    printf("\tindex = %x^%x = %x\n",crc>>12, nh, index);
+//	    auto t=table_nybble[index];
+//	    printf("\ttable[%x] = %04X\n",index, t);
+//	    printf("\tcrc << 4 = %04X\n",crc4);
+//	    printf("\tcrc4 ^ t = %04X\n", crc4 ^ t);
+	}
+
+	auto H1m = H1 & 0xF;
+	auto H1p = H1 >>4;
+	auto L1p = L1 >>4;
+
+        crc = (crc<<4) ^ table_nybble[((crc>>12) ^ nh) & 0x0f];
+	printf("\t0x%04X halfway\n", crc);
+
+
+	auto index2 = (Hm ^Am ^ table_nybble[index]>>12);
+	auto H2 = L
+	      ^ ( (table_nybble[index]>>4) & 0xFF )
+	      ^ (table_nybble[index2]>>8);
+
+	auto L2 = ( (table_nybble[index]&0xF)<<4) ^ (table_nybble[index2]) & 0xFF;
+	printf("  H2=%02X L2=%02X\n",H2, L2);
+
+	if (debug) {
+	    auto crc4=(crc<<4) & 0xFFFF;
+	    auto index = (crc>>12)^nl & 0x0f;
+	    printf("\tindex = %x^%x = %x\n",crc>>12, nl, index);
+	    auto t=table_nybble[index];
+	    printf("\ttable[%x] = %04X\n",index, t);
+	    printf("\tcrc << 4 = %04X\n",crc4);
+	    printf("\tcrc4 ^ t = %04X\n", crc4 ^ t);
+	}
+        crc = (crc<<4) ^ table_nybble[((crc >> 12) ^ nl) & 0x0f];
+	if (debug) {
+	    printf("0x%04X\n", crc);
+	}
+
     }
     return crc;
 }
@@ -30,7 +90,6 @@ int main(int argc, char *argv[]) {
     }
 
     while (*++argv) {
-
 	if (debug) printf("Opening %s\n", *argv);
 	FILE *fp = fopen(*argv, "r");
 	if (!fp) err(2, *argv);
